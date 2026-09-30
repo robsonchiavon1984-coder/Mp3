@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Leitor em Voz</title>
+<meta name="description" content="Le em voz alta, em portugues, PDFs e textos. Funciona sem internet.">
+<meta name="theme-color" content="#1e3a5f">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Leitor em Voz">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header class="cabecalho">
+  <div class="marca">
+    <img src="icone-192.png" alt="" width="24" height="24">
+    <span>Leitor em Voz</span>
+    <span id="selo-offline" class="selo oculto" title="Pronto para funcionar sem internet">offline</span>
+  </div>
+  <nav class="abas" role="tablist">
+    <button class="aba ativa" data-aba="leitor" role="tab">Leitor</button>
+    <button class="aba" data-aba="ajustes" role="tab">Ajustes</button>
+  </nav>
+</header>
+
+<!-- ===================================================================
+     ABA 1 — LEITOR
+     =================================================================== -->
+<main id="painel-leitor" class="painel">
+
+  <!-- Preparacao para uso sem internet -->
+  <section id="area-offline" class="cartao destaque oculto">
+    <p id="offline-titulo" class="linha-status">Preparar o aplicativo para funcionar sem internet</p>
+    <p class="dica" id="offline-detalhe">
+      Baixa e guarda tudo no aparelho, de uma vez. Faca isso conectado ao
+      wi-fi: sao cerca de 30 MB do aplicativo e, se voce quiser gerar MP3,
+      mais o modelo de voz.
+    </p>
+    <div class="barra oculto" id="caixa-barra-offline">
+      <div id="barra-offline" class="barra-preenchida"></div>
+    </div>
+    <div class="linha-botoes">
+      <button id="btn-preparar" class="botao primario">Preparar agora</button>
+      <button id="btn-adiar" class="botao">Depois</button>
+    </div>
+  </section>
+
+  <!-- Entrada de documentos -->
+  <section id="area-entrada" class="cartao">
+    <div id="zona-arraste" class="zona-arraste">
+      <p class="zona-titulo">Abrir um documento</p>
+      <p class="zona-sub">PDF, TXT ou MD — o arquivo nao sai do aparelho</p>
+      <button id="btn-escolher" class="botao primario grande">Escolher arquivo…</button>
+      <input id="entrada-arquivo" type="file"
+             accept=".pdf,.txt,.md,application/pdf,text/plain" hidden>
+    </div>
+
+    <div class="ou-linha"><span>ou</span></div>
+
+    <button id="btn-colar" class="botao secundario largo">Colar um texto</button>
+
+    <div id="area-colagem" class="oculto">
+      <textarea id="txt-colado" rows="7" placeholder="Cole aqui o texto que voce quer ouvir…"></textarea>
+      <div class="linha-botoes">
+        <button id="btn-ler-colado" class="botao pequeno primario">Ler este texto</button>
+        <button id="btn-cancelar-colagem" class="botao pequeno">Cancelar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Progresso de carga -->
+  <section id="area-carregando" class="cartao oculto">
+    <p id="texto-carregando" class="linha-status">Abrindo o documento…</p>
+    <div class="barra"><div id="barra-carregando" class="barra-preenchida"></div></div>
+  </section>
+
+  <!-- Aviso -->
+  <section id="area-aviso" class="cartao aviso oculto">
+    <p id="texto-aviso"></p>
+    <button id="btn-fechar-aviso" class="botao pequeno">Entendi</button>
+  </section>
+
+  <!-- Retomada -->
+  <section id="area-retomar" class="cartao destaque oculto">
+    <p id="texto-retomar"></p>
+    <div class="linha-botoes">
+      <button id="btn-retomar" class="botao pequeno primario">Continuar</button>
+      <button id="btn-do-inicio" class="botao pequeno">Comecar do inicio</button>
+    </div>
+  </section>
+
+  <!-- Documento aberto -->
+  <section id="area-documento" class="oculto">
+    <div class="cartao compacto">
+      <div class="doc-linha">
+        <strong id="doc-nome" class="doc-nome">—</strong>
+        <button id="btn-fechar-doc" class="botao icone" title="Fechar documento" aria-label="Fechar documento">✕</button>
+      </div>
+      <div id="doc-info" class="doc-info">—</div>
+    </div>
+
+    <div class="ferramentas">
+      <label class="campo-inline">
+        Pagina
+        <input id="entrada-pagina" type="number" min="1" value="1" class="numero" inputmode="numeric">
+        <span id="rotulo-total-paginas">/ —</span>
+        <button id="btn-ir-pagina" class="botao pequeno">Ir</button>
+      </label>
+      <div class="campo-inline crescer">
+        <input id="entrada-busca" type="search" placeholder="Localizar…" class="busca">
+        <button id="btn-buscar" class="botao pequeno">Buscar</button>
+      </div>
+    </div>
+
+    <div id="leitura" class="leitura" tabindex="0"></div>
+
+    <div class="rodape-doc">
+      <button id="btn-exportar" class="botao pequeno">Salvar em .txt</button>
+      <button id="btn-mp3" class="botao pequeno primario">Gerar MP3</button>
+      <span id="rotulo-caracteres" class="tenue"></span>
+    </div>
+
+    <!-- Geracao do arquivo de audio -->
+    <section id="area-mp3" class="cartao destaque oculto">
+      <p id="mp3-titulo" class="linha-status">Gerando o arquivo de audio…</p>
+      <div class="barra"><div id="mp3-barra" class="barra-preenchida"></div></div>
+      <div class="progresso-info">
+        <span id="mp3-detalhe">—</span>
+        <span id="mp3-restante"></span>
+      </div>
+      <p class="dica">
+        Mantenha o aplicativo aberto e a tela ligada ate o fim. Em celular a
+        conversao e demorada — veja a estimativa acima.
+      </p>
+      <div class="linha-botoes">
+        <button id="btn-mp3-cancelar" class="botao pequeno">Cancelar</button>
+      </div>
+    </section>
+  </section>
+</main>
+
+<!-- ===================================================================
+     ABA 2 — AJUSTES
+     =================================================================== -->
+<main id="painel-ajustes" class="painel oculto">
+
+  <section class="cartao">
+    <h2 class="titulo-secao">Voz</h2>
+
+    <label class="campo">
+      <span>Voz</span>
+      <select id="sel-voz"></select>
+    </label>
+
+    <label class="caixa">
+      <input type="checkbox" id="chk-so-portugues" checked>
+      <span>Mostrar apenas vozes em portugues</span>
+    </label>
+
+    <p class="dica" id="dica-vozes"></p>
+
+    <label class="campo">
+      <span>Velocidade <em id="val-velocidade">1,0×</em></span>
+      <input type="range" id="rng-velocidade" min="0.5" max="2.5" step="0.05" value="1">
+    </label>
+
+    <label class="campo">
+      <span>Tom <em id="val-tom">1,0</em></span>
+      <input type="range" id="rng-tom" min="0.5" max="1.5" step="0.05" value="1">
+    </label>
+
+    <label class="campo">
+      <span>Volume <em id="val-volume">100%</em></span>
+      <input type="range" id="rng-volume" min="0" max="1" step="0.05" value="1">
+    </label>
+
+    <button id="btn-testar-voz" class="botao secundario largo">Ouvir uma amostra</button>
+  </section>
+
+  <section class="cartao">
+    <h2 class="titulo-secao">Leitura de texto juridico</h2>
+
+    <label class="caixa">
+      <input type="checkbox" id="chk-abreviaturas" checked>
+      <span>Pronunciar abreviaturas por extenso (art. &rarr; artigo)</span>
+    </label>
+
+    <label class="caixa">
+      <input type="checkbox" id="chk-processos" checked>
+      <span>Ler numeros de processo digito a digito</span>
+    </label>
+
+    <label class="campo">
+      <span>Dicionario de pronuncia</span>
+      <textarea id="txt-dicionario" rows="8" spellcheck="false"></textarea>
+    </label>
+    <div class="linha-botoes">
+      <button id="btn-salvar-dicionario" class="botao pequeno primario">Salvar dicionario</button>
+      <button id="btn-restaurar-dicionario" class="botao pequeno">Restaurar padrao</button>
+    </div>
+    <p class="dica">Uma regra por linha, no formato <code>termo = como falar</code>.</p>
+  </section>
+
+  <section class="cartao">
+    <h2 class="titulo-secao">Importacao de PDF</h2>
+
+    <label class="caixa">
+      <input type="checkbox" id="chk-num-pagina" checked>
+      <span>Descartar numeros de pagina soltos</span>
+    </label>
+
+    <label class="caixa">
+      <input type="checkbox" id="chk-cabecalhos">
+      <span>Descartar cabecalhos e rodapes em maiusculas</span>
+    </label>
+
+    <label class="caixa">
+      <input type="checkbox" id="chk-espacamento" checked>
+      <span>Juntar letras afastadas (E M E N T A &rarr; EMENTA)</span>
+    </label>
+    <p class="dica" id="dica-espacamento">
+      Usa o proprio espacamento do documento para saber onde termina cada
+      palavra: o menor vao separa letras, os maiores separam palavras.
+    </p>
+
+    <label class="campo">
+      <span>Tamanho maximo de cada trecho falado <em id="val-trecho">240</em> caracteres</span>
+      <input type="range" id="rng-trecho" min="120" max="400" step="10" value="240">
+    </label>
+  </section>
+
+  <section class="cartao">
+    <h2 class="titulo-secao">Arquivo de audio (MP3)</h2>
+
+    <p class="dica">
+      A voz da leitura em tempo real nao pode ser gravada: o navegador nao
+      entrega o som dela a pagina. O MP3 e produzido por outro sintetizador,
+      o Piper, que roda dentro do aplicativo e devolve as amostras. Ele
+      precisa de um modelo de voz, instalado uma vez e guardado no aparelho.
+    </p>
+
+    <label class="campo">
+      <span>Voz do arquivo</span>
+      <select id="sel-voz-mp3">
+        <option value="pt_BR-faber-medium">Faber (media) — melhor qualidade</option>
+        <option value="pt_BR-edresson-low">Edresson (baixa) — geracao mais rapida</option>
+      </select>
+    </label>
+
+    <p class="dica" id="estado-modelo">Verificando o modelo…</p>
+
+    <div class="linha-botoes">
+      <button id="btn-instalar-modelo" class="botao pequeno primario">Instalar o modelo</button>
+      <button id="btn-modelo-disco" class="botao pequeno">Escolher arquivos…</button>
+      <button id="btn-apagar-modelo" class="botao pequeno">Apagar</button>
+    </div>
+    <input id="entrada-modelo" type="file" accept=".onnx,.json" multiple hidden>
+
+    <div class="barra oculto" id="caixa-barra-modelo">
+      <div id="barra-modelo" class="barra-preenchida"></div>
+    </div>
+
+    <label class="campo" style="margin-top:14px">
+      <span>Velocidade da fala no arquivo <em id="val-velocidade-mp3">1,0×</em></span>
+      <input type="range" id="rng-velocidade-mp3" min="0.6" max="1.6" step="0.05" value="1">
+    </label>
+
+    <label class="campo">
+      <span>Qualidade do MP3</span>
+      <select id="sel-kbps">
+        <option value="32">32 kbps — arquivo menor</option>
+        <option value="48" selected>48 kbps — equilibrado</option>
+        <option value="64">64 kbps — melhor som</option>
+      </select>
+    </label>
+  </section>
+
+  <section class="cartao">
+    <h2 class="titulo-secao">Aparencia e comportamento</h2>
+
+    <label class="campo">
+      <span>Tema</span>
+      <select id="sel-tema">
+        <option value="auto">Seguir o sistema</option>
+        <option value="claro">Claro</option>
+        <option value="escuro">Escuro</option>
+      </select>
+    </label>
+
+    <label class="campo">
+      <span>Tamanho da letra <em id="val-fonte">17 px</em></span>
+      <input type="range" id="rng-fonte" min="14" max="30" step="1" value="17">
+    </label>
+
+    <label class="caixa">
+      <input type="checkbox" id="chk-rolagem" checked>
+      <span>Acompanhar a leitura rolando o texto</span>
+    </label>
+
+    <label class="caixa">
+      <input type="checkbox" id="chk-tela-ligada" checked>
+      <span>Manter a tela ligada durante a leitura</span>
+    </label>
+
+    <label class="caixa">
+      <input type="checkbox" id="chk-memoria" checked>
+      <span>Lembrar onde parei em cada documento</span>
+    </label>
+
+    <button id="btn-limpar-memoria" class="botao pequeno">Apagar as posicoes guardadas</button>
+  </section>
+
+  <section class="cartao">
+    <h2 class="titulo-secao">Armazenamento e atualizacao</h2>
+    <p class="dica" id="estado-armazenamento">—</p>
+    <div class="linha-botoes">
+      <button id="btn-preparar-2" class="botao pequeno primario">Baixar tudo para uso offline</button>
+      <button id="btn-atualizar" class="botao pequeno">Procurar atualizacao</button>
+    </div>
+    <p class="dica" id="estado-versao"></p>
+  </section>
+
+  <section class="cartao">
+    <h2 class="titulo-secao">Ressalvas do celular</h2>
+    <p class="dica" id="dica-plataforma">—</p>
+  </section>
+</main>
+
+<!-- Barra de reproducao fixa -->
+<div id="barra-tocador" class="tocador oculto">
+  <div class="tocador-progresso"><div id="tocador-barra"></div></div>
+  <div class="tocador-linha">
+    <button id="btn-anterior" class="botao icone grande" aria-label="Trecho anterior">⏮</button>
+    <button id="btn-tocar" class="botao icone principal" aria-label="Ler">▶</button>
+    <button id="btn-parar" class="botao icone grande" aria-label="Parar">⏹</button>
+    <button id="btn-proxima" class="botao icone grande" aria-label="Proximo trecho">⏭</button>
+    <span id="rotulo-posicao" class="tocador-info">—</span>
+  </div>
+</div>
+
+<script src="pdf.min.js"></script>
+<script src="espacamento.js"></script>
+<script src="frases.js"></script>
+<script src="abreviaturas.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+Coloque aqui os dois arquivos do modelo de voz do Piper.
+
+O aplicativo procura, nesta pasta, exatamente estes nomes:
+
+    pt_BR-faber-medium.onnx
+    pt_BR-faber-medium.onnx.json
+
+Baixe-os de:
+
+    https://huggingface.co/rhasspy/piper-voices/resolve/main/pt/pt_BR/faber/medium/pt_BR-faber-medium.onnx
+    https://huggingface.co/rhasspy/piper-voices/resolve/main/pt/pt_BR/faber/medium/pt_BR-faber-medium.onnx.json
+
+Se quiser tambem a voz mais rapida (Edresson), acrescente:
+
+    pt_BR-edresson-low.onnx
+    pt_BR-edresson-low.onnx.json
+
+de:
+
+    https://huggingface.co/rhasspy/piper-voices/resolve/main/pt/pt_BR/edresson/low/pt_BR-edresson-low.onnx
+    https://huggingface.co/rhasspy/piper-voices/resolve/main/pt/pt_BR/edresson/low/pt_BR-edresson-low.onnx.json
+
+O arquivo .onnx da voz Faber tem algumas dezenas de megabytes. O GitHub aceita
+arquivos de ate 100 MB sem configuracao adicional, entao basta envia-lo junto
+com o restante do repositorio.
+
+Esta pasta e a unica coisa que voce precisa acrescentar a mao. Sem ela, o
+leitor em voz funciona normalmente; apenas a geracao de MP3 fica indisponivel,
+e o aplicativo oferece, como alternativa, escolher os arquivos a mao pelo botao
+"Escolher arquivos..." em Ajustes.
